@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Item Profit Calc</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  body {
+    min-height: 100vh;
+    background: #0a0d14;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(30,60,40,.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 20%, rgba(20,40,70,.40) 0%, transparent 50%);
+    font-family: 'DM Mono', monospace;
+    padding: 20px;
+    color: #e2e8f0;
+  }
+
+  .wrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -.03em; }
+  .title span { color: #63ffb4; }
+  .subtitle { font-size: 11px; color: rgba(255,255,255,.3); margin-top: 4px; letter-spacing: .07em; }
+
+  .tax-toggle { display: flex; gap: 6px; background: rgba(255,255,255,.05); border-radius: 10px; padding: 5px; }
+  .tax-btn { border: none; padding: 7px 16px; border-radius: 7px; font-family: 'DM Mono', monospace; font-size: 13px; cursor: pointer; transition: all .18s; font-weight: 500; letter-spacing: .04em; background: transparent; color: rgba(255,255,255,.45); }
+  .tax-btn.active15 { background: #f59e0b; color: #000; box-shadow: 0 0 16px rgba(245,158,11,.4); }
+  .tax-btn.active12 { background: #10b981; color: #000; box-shadow: 0 0 16px rgba(16,185,129,.4); }
+
+  .row1, .row2 { display: flex; gap: 14px; flex-wrap: wrap; }
+
+  .card { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 16px; padding: 20px 22px; }
+  .sec { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.3); margin-bottom: 16px; }
+
+  .dual-input-wrap { flex: 1; min-width: 200px; }
+  .dual-inputs { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .field-label { font-size: 10px; letter-spacing: .10em; text-transform: uppercase; color: rgba(255,255,255,.4); margin-bottom: 8px; }
+
+  .input-row { position: relative; margin-bottom: 5px; }
+  .input-prefix {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 38px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.06); border-radius: 9px 0 0 9px;
+    border-right: 1px solid rgba(255,255,255,.08);
+    font-size: 12px; font-weight: 600; color: rgba(255,255,255,.4);
+    font-family: 'DM Mono', monospace; pointer-events: none; z-index: 1;
+    transition: background .2s, color .2s;
+  }
+  .field-input {
+    width: 100%; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.10); border-radius: 9px;
+    color: #e2e8f0; padding: 10px 10px 10px 46px;
+    font-family: 'DM Mono', monospace; font-size: 14px; outline: none;
+    transition: border .2s, background .2s;
+  }
+  .field-input.usd-input:focus { border-color: rgba(96,165,250,.55); background: rgba(96,165,250,.08); }
+  .field-input.idr-input:focus { border-color: rgba(99,255,180,.5); background: rgba(99,255,180,.07); }
+  .sync-label {
+    text-align: center; font-size: 10px; color: rgba(99,255,180,.5);
+    letter-spacing: .05em; margin: 5px 0; font-family: 'DM Mono', monospace;
+  }
+
+  .qty-wrap { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .qty-box { min-width: 88px; }
+  .qty-input { width: 100%; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 9px; color: #e2e8f0; padding: 10px; font-family: 'DM Mono', monospace; font-size: 15px; outline: none; text-align: center; }
+  .qty-btns { display: flex; gap: 5px; }
+  .qty-btn-item { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: rgba(255,255,255,.45); border-radius: 7px; padding: 9px 12px; font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all .15s; }
+  .qty-btn-item.qactive { background: rgba(99,255,180,.15); border-color: rgba(99,255,180,.4); color: #63ffb4; }
+
+  /* Kalkulasi rows */
+  .calc-rows { display: flex; flex-direction: column; gap: 8px; }
+  .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 8px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); }
+  .calc-row.bold-row { background: rgba(99,255,180,.07); border-color: rgba(99,255,180,.18); }
+  .calc-label { font-size: 11px; color: rgba(255,255,255,.5); }
+  .calc-vals { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .calc-usd { font-size: 10px; color: rgba(255,255,255,.28); font-family: 'DM Mono', monospace; }
+  .calc-idr { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; }
+  /* Kurangi efek menyala (neon) pada teks hasil */
+  .calc-idr.bold-val { font-size: 17px; font-weight: 800; color: #63ffb4; text-shadow: 0 0 4px rgba(99,255,180,.15); }
+
+  /* Profit cards */
+  .profit-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .profit-card { padding: 14px; border-radius: 11px; }
+  .profit-card.gross-pos { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25); color: #fbbf24;}
+  .profit-card.gross-neg { background: rgba(255,99,99,.08); border: 1px solid rgba(255,99,99,.22); color: #ff6363;}
+  .profit-card.net-pos { background: rgba(99,255,180,.10); border: 1.5px solid rgba(99,255,180,.35); color: #63ffb4;}
+  .profit-card.net-neg { background: rgba(255,99,99,.10); border: 1.5px solid rgba(255,99,99,.30); color: #ff6363;}
+  .profit-lbl { font-size: 10px; letter-spacing: .10em; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 6px; }
+  .profit-val { font-family: 'Syne', sans-serif; letter-spacing: -.02em; font-weight: 800; }
+  .profit-usd { font-size: 11px; margin-top: 3px; color: rgba(255,255,255,0.7); }
+  .profit-sub { font-size: 10px; color: rgba(255,255,255,.22); margin-top: 3px; }
+  .roi-box { margin-top: 8px; padding: 5px 9px; background: rgba(255,255,255,.04); border-radius: 7px; font-size: 11px; color: rgba(255,255,255,.5); display: inline-block; }
+
+  /* Rate banner */
+  .rate-banner { display: flex; align-items: center; justify-content: space-between; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
+  .rate-banner.ok  { background: rgba(99,255,180,.07); border: 1px solid rgba(99,255,180,.2); }
+  .rate-banner.err { background: rgba(255,200,50,.07);  border: 1px solid rgba(255,200,50,.2); }
+  .rate-banner.loading { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+  .rate-dot { width: 8px; height: 8px; border-radius: 50%; background: #63ffb4; box-shadow: 0 0 8px rgba(99,255,180,.7); animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
+  .rate-spin { width: 10px; height: 10px; border: 2px solid rgba(99,255,180,.3); border-top: 2px solid #63ffb4; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+  .rate-lbl { font-size: 10px; color: rgba(255,255,255,.4); letter-spacing: .06em; }
+  .rate-val { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; color: #63ffb4; line-height: 1.3; }
+  .rate-time { font-size: 10px; color: rgba(255,255,255,.25); }
+  .refresh-btn { background: rgba(99,255,180,.10); border: 1px solid rgba(99,255,180,.25); color: #63ffb4; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace; }
+
+  /* Wallet */
+  .wallet-rows { display: flex; flex-direction: column; gap: 7px; }
+  .wallet-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 8px; }
+  .wallet-row.w-normal { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); }
+  .wallet-row.w-bold   { background: rgba(99,255,180,.08); border: 1px solid rgba(99,255,180,.2); }
+  .wallet-amounts { display: flex; gap: 12px; align-items: center; }
+  .wallet-usd { font-size: 12px; font-family: 'DM Mono', monospace; }
+  /* Kurangi efek menyala wallet idr */
+  .wallet-idr { font-family: 'Syne', sans-serif; }
+  .w-bold .wallet-idr { font-size: 14px; color: #63ffb4; font-weight: 700; text-shadow: 0 0 4px rgba(99,255,180,.15); }
+
+  /* Summary cards */
+  .stat-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 14px 16px; flex: 1; min-width: 120px; }
+  .stat-lbl { font-size: 10px; letter-spacing: .10em; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 7px; }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+  /* Kurangi efek menyala summary */
+  .stat-val.accent { color: #63ffb4; text-shadow: 0 0 5px rgba(99,255,180,.15); }
+  .stat-val.negative { color: #ff7070; text-shadow: 0 0 5px rgba(255,99,99,.15); }
+  .stat-sub { font-size: 11px; color: rgba(255,255,255,.3); margin-top: 5px; font-family: 'DM Mono', monospace; }
+
+  .footer { text-align: center; font-size: 10px; color: rgba(255,255,255,.13); letter-spacing: .05em; padding-top: 20px; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    .title { font-size: 20px; }
+    .dual-inputs { flex-direction: column; }
+    .dual-input-wrap { min-width: unset; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="title">🎮 Game Item <span>Profit</span> Calc</div>
+      <div class="subtitle">Hitung keuntungan kotor & bersih jual-beli item game</div>
+    </div>
+    <div class="tax-toggle">
+      <button class="tax-btn" id="btn12" onclick="setTax(12)">Tax 12%</button>
+      <button class="tax-btn active15" id="btn15" onclick="setTax(15)">Tax 15%</button>
+    </div>
+  </div>
+
+  <!-- ROW 1 -->
+  <div class="row1">
+
+    <!-- INPUT PANEL -->
+    <div class="card" style="flex:1 1 340px">
+      <div class="sec">⚙️ Input Data Transaksi</div>
+      <div class="dual-inputs">
+
+        <!-- Harga Beli -->
+        <div class="dual-input-wrap">
+          <div class="field-label">🛒 Harga Beli (per item)</div>
+          <div class="input-row">
+            <div class="input-prefix" id="pfx-buy-usd">$</div>
+            <input class="field-input usd-input" type="number" id="buy-usd" placeholder="0.00" oninput="syncFromUSD('buy')" />
+          </div>
+          <div class="sync-label" id="sync-buy">⇅ auto-sync via kurs</div>
+          <div class="input-row">
+            <div class="input-prefix" id="pfx-buy-idr">Rp</div>
+            <input class="field-input idr-input" type="number" id="buy-idr" placeholder="0" oninput="syncFromIDR('buy')" />
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.18);margin-top:4px">Tanpa tax</div>
+        </div>
+
+        <!-- Harga Jual -->
+        <div class="dual-input-wrap">
+          <div class="field-label" id="sell-lbl">💰 Harga Jual (per item) · tax 15%</div>
+          <div class="input-row">
+            <div class="input-prefix">$</div>
+            <input class="field-input usd-input" type="number" id="sell-usd" placeholder="0.00" oninput="syncFromUSD('sell')" />
+          </div>
+          <div class="sync-label" id="sync-sell">⇅ auto-sync via kurs</div>
+          <div class="input-row">
+            <div class="input-prefix">Rp</div>
+            <input class="field-input idr-input" type="number" id="sell-idr" placeholder="0" oninput="syncFromIDR('sell')" />
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.18);margin-top:4px">Akan dipotong tax</div>
+        </div>
+      </div>
+
+      <!-- Jumlah -->
+      <div class="qty-wrap">
+        <div class="qty-box">
+          <div class="field-label">📦 Jumlah</div>
+          <input class="qty-input" type="number" id="qty" value="1" min="1" oninput="recalc()" />
+        </div>
+        <div class="qty-btns">
+          <button class="qty-btn-item qactive" id="q1" onclick="setQty(1)">×1</button>
+          <button class="qty-btn-item" id="q5" onclick="setQty(5)">×5</button>
+          <button class="qty-btn-item" id="q10" onclick="setQty(10)">×10</button>
+          <button class="qty-btn-item" id="q20" onclick="setQty(20)">×20</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KALKULASI -->
+    <div class="card" style="flex:1 1 260px">
+      <div class="sec">🧮 Kalkulasi Penjualan</div>
+      <div class="calc-rows">
+        <div class="calc-row">
+          <span class="calc-label">Total Harga Beli</span>
+          <div class="calc-vals">
+            <span class="calc-usd" id="c-buy-usd">$0.00</span>
+            <span class="calc-idr" style="color:#ff9f7f" id="c-buy-idr">Rp 0</span>
+          </div>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label" id="c-sell-lbl">Total Harga Jual</span>
+          <div class="calc-vals">
+            <span class="calc-usd" id="c-sell-usd">$0.00</span>
+            <span class="calc-idr" style="color:#e2e8f0" id="c-sell-idr">Rp 0</span>
+          </div>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label" id="c-tax-lbl">Tax Platform (15%)</span>
+          <div class="calc-vals">
+            <span class="calc-usd" id="c-tax-usd">-$0.00</span>
+            <span class="calc-idr" style="color:#f87171" id="c-tax-idr">-Rp 0</span>
+          </div>
+        </div>
+        <div class="calc-row bold-row">
+          <span class="calc-label">Hasil Jual Bersih</span>
+          <div class="calc-vals">
+            <span class="calc-usd" id="c-net-usd">$0.00</span>
+            <span class="calc-idr bold-val" id="c-net-idr">Rp 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFIT -->
+    <div class="card" style="flex:1 1 200px">
+      <div class="sec">📊 Profit Summary</div>
+      <div class="profit-wrap">
+        <div class="profit-card gross-pos" id="gross-card">
+          <div class="profit-lbl">Profit Kotor</div>
+          <div class="profit-val" id="gross-val" style="font-size:22px">Rp 0</div>
+          <div class="profit-usd" id="gross-usd">$0.00</div>
+          <div class="profit-sub">Jual − Beli (sebelum tax)</div>
+        </div>
+        <div class="profit-card net-pos" id="net-card">
+          <div class="profit-lbl">Profit Bersih ✨</div>
+          <div class="profit-val" id="net-val" style="font-size:26px">Rp 0</div>
+          <div class="profit-usd" id="net-usd">$0.00</div>
+          <div class="profit-sub" id="net-sub">Setelah tax platform</div>
+          <div class="roi-box" id="roi-box">ROI: 0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2 -->
+  <div class="row2">
+
+    <!-- WALLET -->
+    <div class="card" style="flex:1 1 300px">
+      <!-- Rate Banner -->
+      <div class="rate-banner loading" id="rate-banner">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="rate-spin" id="rate-icon"></div>
+          <div>
+            <div class="rate-lbl" id="rate-lbl">Mengambil kurs live…</div>
+            <div class="rate-val" id="rate-val"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <div class="rate-time" id="rate-time"></div>
+          <button class="refresh-btn" onclick="fetchRate()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="sec">💼 Wallet Balance (USD → IDR)</div>
+
+      <div class="input-row" style="margin-bottom:4px">
+        <div class="input-prefix">$</div>
+        <input class="field-input usd-input" type="number" id="wallet-amt" placeholder="0.00" oninput="recalc()" />
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.18);margin-bottom:14px;padding-left:2px">Simulasi withdraw dipotong 14% tax</div>
+
+      <div class="wallet-rows">
+        <div class="wallet-row w-normal">
+          <span style="font-size:11px;color:rgba(255,255,255,.45)">Saldo Wallet</span>
+          <div class="wallet-amounts">
+            <span class="wallet-usd" style="color:#e2e8f0" id="w-gross-usd">$0.00</span>
+            <span class="wallet-idr" style="font-size:11px;color:rgba(255,255,255,.3)" id="w-gross-idr">Rp 0</span>
+          </div>
+        </div>
+        <div class="wallet-row w-normal">
+          <span style="font-size:11px;color:rgba(255,255,255,.45)">Tax 14%</span>
+          <div class="wallet-amounts">
+            <span class="wallet-usd" style="color:#f87171" id="w-tax-usd">-$0.00</span>
+            <span class="wallet-idr" style="font-size:11px;color:rgba(255,255,255,.3)" id="w-tax-idr">-Rp 0</span>
+          </div>
+        </div>
+        <div class="wallet-row w-bold">
+          <span style="font-size:11px;color:rgba(255,255,255,.45)">Wallet Bersih</span>
+          <div class="wallet-amounts">
+            <span class="wallet-usd" style="color:#63ffb4;font-weight:700" id="w-net-usd">$0.00</span>
+            <span class="wallet-idr" id="w-net-idr">Rp 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="card" style="flex:2 1 380px">
+      <div class="sec">📋 Ringkasan Cepat</div>
+      <div class="stat-cards">
+        <div class="stat-card" id="s-buy">
+          <div class="stat-lbl">Modal Beli Total</div>
+          <div class="stat-val" id="s-buy-val">Rp 0</div>
+          <div class="stat-sub" id="s-buy-sub">$0.00</div>
+        </div>
+        <div class="stat-card" id="s-sell">
+          <div class="stat-lbl" id="s-sell-lbl">Hasil Jual Kotor</div>
+          <div class="stat-val" id="s-sell-val">Rp 0</div>
+          <div class="stat-sub" id="s-sell-sub">$0.00</div>
+        </div>
+        <div class="stat-card" id="s-gross">
+          <div class="stat-lbl">Profit Kotor</div>
+          <div class="stat-val" id="s-gross-val" style="color:#fbbf24">Rp 0</div>
+          <div class="stat-sub" id="s-gross-sub">Sebelum tax</div>
+        </div>
+        <div class="stat-card" id="s-net">
+          <div class="stat-lbl">Profit Bersih</div>
+          <div class="stat-val accent" id="s-net-val">Rp 0</div>
+          <div class="stat-sub" id="s-net-sub">Setelah tax</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Kurs diambil real-time via API · Semua kalkulasi bersifat estimasi</div>
+</div>
+
+<script>
+  // ── STATE ──
+  let usdRate = 16000; // Fallback jika gagal fetch
+  let taxRate = 15;
+
+  // ── FORMATTERS ──
+  function fmtIDR(n) {
+    if (!n && n !== 0) return "Rp 0";
+    
+    // Membulatkan desimal agar tidak membingungkan pengguna (542,886 -> Rp 543)
+    const abs = Math.round(Math.abs(n)); 
+    const sign = n < 0 ? "-" : "";
+    
+    // Untuk angka milyaran dan jutaan, kita bisa persingkat jika mau.
+    // Format "rb" (ribuan) dihapus sepenuhnya agar angka seperti 500 dan 3800 tidak berantakan.
+    if (abs >= 1e9) return sign + "Rp " + (abs/1e9).toFixed(2) + "M";
+    if (abs >= 1e6) return sign + "Rp " + (abs/1e6).toFixed(2) + "jt";
+    
+    // Format angka standar menggunakan titik pemisah ribuan
+    return sign + "Rp " + abs.toLocaleString('id-ID');
+  }
+
+  function fmtUSD(n) {
+    const sign = n < 0 ? "-" : "";
+    return sign + "$" + Math.abs(n).toFixed(2);
+  }
+
+  // ── FETCH KURS ──
+  async function fetchRate() {
+    const banner = document.getElementById('rate-banner');
+    const lbl = document.getElementById('rate-lbl');
+    const val = document.getElementById('rate-val');
+    const icon = document.getElementById('rate-icon');
+    const time = document.getElementById('rate-time');
+
+        banner.className = 'rate-banner loading';
+    lbl.innerText = 'Mengambil kurs live…';
+    val.innerText = '';
+    icon.className = 'rate-spin';
+
+    try {
+      const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      const data = await res.json();
+      usdRate = data.rates.IDR;
+
+      banner.className = 'rate-banner ok';
+      lbl.innerText = 'Kurs Live USD/IDR';
+      val.innerText = "Rp " + usdRate.toLocaleString('id-ID');
+      icon.className = 'rate-dot';
+      icon.style.background = '#63ffb4';
+      time.innerText = new Date().toLocaleTimeString('id-ID') + ' WIB';
+
+      // Sinkronisasi ulang input setelah kurs didapat
+      if(document.getElementById('buy-usd').value) syncFromUSD('buy');
+      if(document.getElementById('sell-usd').value) syncFromUSD('sell');
+      recalc();
+
+    } catch (e) {
+      banner.className = 'rate-banner err';
+      lbl.innerText = 'API Gagal. Memakai kurs manual.';
+      usdRate = 16200; 
+      
+      val.innerText = "Rp " + usdRate.toLocaleString('id-ID');
+      icon.className = 'rate-dot';
+      icon.style.background = '#f59e0b';
+      icon.style.boxShadow = 'none';
+
+      if(document.getElementById('buy-usd').value) syncFromUSD('buy');
+      if(document.getElementById('sell-usd').value) syncFromUSD('sell');
+      recalc();
+    }
+  }
+
+  // ── LOGIC INPUT ──
+  function syncFromUSD(type) {
+    const usdVal = parseFloat(document.getElementById(`${type}-usd`).value) || 0;
+    // Dibulatkan agar tidak muncul desimal aneh di kolom input IDR
+    document.getElementById(`${type}-idr`).value = Math.round(usdVal * usdRate);
+    recalc();
+  }
+
+  function syncFromIDR(type) {
+    const idrVal = parseFloat(document.getElementById(`${type}-idr`).value) || 0;
+    document.getElementById(`${type}-usd`).value = (idrVal / usdRate).toFixed(2);
+    recalc();
+  }
+
+  function setTax(rate) {
+    taxRate = rate;
+    document.getElementById('btn12').className = rate === 12 ? 'tax-btn active12' : 'tax-btn';
+    document.getElementById('btn15').className = rate === 15 ? 'tax-btn active15' : 'tax-btn';
+    
+    document.getElementById('sell-lbl').innerText = `💰 Harga Jual (per item) · tax ${rate}%`;
+    document.getElementById('c-tax-lbl').innerText = `Tax Platform (${rate}%)`;
+    recalc();
+  }
+
+  function setQty(q) {
+    document.getElementById('qty').value = q;
+    const btns = [1, 5, 10, 20];
+    btns.forEach(val => {
+      document.getElementById(`q${val}`).className = val === q ? 'qty-btn-item qactive' : 'qty-btn-item';
+    });
+    recalc();
+  }
+
+  // ── MAIN CALCULATION ──
+  function recalc() {
+    const qty = parseInt(document.getElementById('qty').value) || 1;
+    
+    // Kita baca input USD dan IDR secara terpisah agar perhitungan IDR tetap presisi 
+    // jika user mengetik angka langsung di kolom IDR (tidak terpengaruh pembulatan desimal USD)
+    const buyUSD = parseFloat(document.getElementById('buy-usd').value) || 0;
+    const sellUSD = parseFloat(document.getElementById('sell-usd').value) || 0;
+    const buyIDR = parseFloat(document.getElementById('buy-idr').value) || 0;
+    const sellIDR = parseFloat(document.getElementById('sell-idr').value) || 0;
+
+    // --- Kalkulasi Base USD ---
+    const totalBuyUSD = buyUSD * qty;
+    const totalSellUSD = sellUSD * qty;
+    const taxValueUSD = totalSellUSD * (taxRate / 100);
+    const netSellUSD = totalSellUSD - taxValueUSD;
+    
+    const grossProfitUSD = totalSellUSD - totalBuyUSD;
+    const netProfitUSD = netSellUSD - totalBuyUSD;
+    
+    // --- Kalkulasi Base IDR ---
+    // Diperbarui: Sekarang menghitung langsung dari angka yg diketik di box IDR
+    const totalBuyIDR = buyIDR * qty;
+    const totalSellIDR = sellIDR * qty;
+    const taxValueIDR = totalSellIDR * (taxRate / 100);
+    const netSellIDR = totalSellIDR - taxValueIDR;
+    
+    const grossProfitIDR = totalSellIDR - totalBuyIDR;
+    const netProfitIDR = netSellIDR - totalBuyIDR;
+    
+    const roi = totalBuyIDR > 0 ? (netProfitIDR / totalBuyIDR) * 100 : 0;
+
+    // Update DOM (Tabel Kalkulasi)
+    document.getElementById('c-buy-usd').innerText = fmtUSD(totalBuyUSD);
+    document.getElementById('c-buy-idr').innerText = fmtIDR(totalBuyIDR);
+    document.getElementById('c-sell-usd').innerText = fmtUSD(totalSellUSD);
+    document.getElementById('c-sell-idr').innerText = fmtIDR(totalSellIDR);
+    document.getElementById('c-tax-usd').innerText = fmtUSD(-taxValueUSD);
+    document.getElementById('c-tax-idr').innerText = fmtIDR(-taxValueIDR);
+    document.getElementById('c-net-usd').innerText = fmtUSD(netSellUSD);
+    document.getElementById('c-net-idr').innerText = fmtIDR(netSellIDR);
+
+    // Update DOM (Profit Cards)
+    const grossCard = document.getElementById('gross-card');
+    grossCard.className = grossProfitUSD >= 0 ? 'profit-card gross-pos' : 'profit-card gross-neg';
+    document.getElementById('gross-val').innerText = fmtIDR(grossProfitIDR);
+    document.getElementById('gross-usd').innerText = fmtUSD(grossProfitUSD);
+
+    const netCard = document.getElementById('net-card');
+    netCard.className = netProfitUSD >= 0 ? 'profit-card net-pos' : 'profit-card net-neg';
+    document.getElementById('net-val').innerText = fmtIDR(netProfitIDR);
+    document.getElementById('net-usd').innerText = fmtUSD(netProfitUSD);
+    
+    const roiBox = document.getElementById('roi-box');
+    roiBox.innerText = `ROI: ${roi.toFixed(1)}%`;
+    roiBox.style.color = roi >= 0 ? '#63ffb4' : '#ff6363';
+
+    // Update DOM (Summary Cards)
+    document.getElementById('s-buy-val').innerText = fmtIDR(totalBuyIDR);
+    document.getElementById('s-buy-sub').innerText = fmtUSD(totalBuyUSD);
+    document.getElementById('s-sell-val').innerText = fmtIDR(totalSellIDR);
+    document.getElementById('s-sell-sub').innerText = fmtUSD(totalSellUSD);
+    
+    const sGross = document.getElementById('s-gross-val');
+    sGross.innerText = fmtIDR(grossProfitIDR);
+    sGross.style.color = grossProfitIDR >= 0 ? '#fbbf24' : '#ff6363';
+    
+    const sNet = document.getElementById('s-net-val');
+    sNet.innerText = fmtIDR(netProfitIDR);
+    sNet.style.color = netProfitIDR >= 0 ? '#63ffb4' : '#ff6363';
+
+    // Update DOM (Wallet System)
+    const walletUSD = parseFloat(document.getElementById('wallet-amt').value) || 0;
+    const wTaxUSD = walletUSD * 0.14;
+    const wNetUSD = walletUSD - wTaxUSD;
+    
+    document.getElementById('w-gross-usd').innerText = fmtUSD(walletUSD);
+    document.getElementById('w-gross-idr').innerText = fmtIDR(walletUSD * usdRate);
+    document.getElementById('w-tax-usd').innerText = fmtUSD(-wTaxUSD);
+    document.getElementById('w-tax-idr').innerText = fmtIDR(-wTaxUSD * usdRate);
+    document.getElementById('w-net-usd').innerText = fmtUSD(wNetUSD);
+    document.getElementById('w-net-idr').innerText = fmtIDR(wNetUSD * usdRate);
+  }
+
+  // Load awal
+  window.onload = () => {
+    fetchRate();
+  };
+</script>
+</body>
+</html>
